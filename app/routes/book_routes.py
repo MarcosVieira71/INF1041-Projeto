@@ -23,8 +23,8 @@ def book(book_id):
     book = get_book(book_repo, book_id)
     if book is None:
         flash("Livro não encontrado")
-        return redirect(url_for("books.home"))
-    return render_template("book.html", book=book)
+        return redirect(url_for("home"))
+    return render_template("books/book.html", book=book)
 
 # ======================== Criar livro ==========================
 @book_bp.route("/create", methods=["GET", "POST"])
@@ -39,9 +39,9 @@ def create():
         else:
             create_book(book_repo, title, author, available)
             flash("Livro cadastrado com sucesso!")
-            return redirect(url_for("books.home"))
+            return redirect(url_for("home"))
 
-    return render_template("create.html")
+    return render_template("books/create.html")
 
 # ======================== Editar livro ==========================
 @book_bp.route("/<int:book_id>/edit", methods=["GET", "POST"])
@@ -49,7 +49,7 @@ def edit(book_id):
     book = get_book(book_repo, book_id)
     if book is None:
         flash("Livro não encontrado")
-        return redirect(url_for("books.home"))
+        return redirect(url_for("home"))
 
     if request.method == "POST":
         title = request.form["title"]
@@ -61,13 +61,13 @@ def edit(book_id):
         else:
             update_book(book_repo, book_id, title, author, available)
             flash("Livro atualizado com sucesso!")
-            return redirect(url_for("books.home"))
+            return redirect(url_for("home"))
 
-    return render_template("edit.html", book=book)
+    return render_template("books/edit.html", book=book)
 
 # ======================== Deletar livro ==========================
 @book_bp.route("/<int:book_id>/delete", methods=["POST"])
 def delete(book_id):
     delete_book(book_repo, book_id)
     flash("Livro deletado com sucesso!")
-    return redirect(url_for("books.home"))
+    return redirect(url_for("home"))

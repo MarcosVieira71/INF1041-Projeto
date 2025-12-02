@@ -4,29 +4,55 @@ from use_cases.get_user import get_user
 from use_cases.create_user import create_user
 from use_cases.update_user import update_user
 from use_cases.delete_user import delete_user
-from infra.repositories.user_repository_sqlite import UserRepositorySQLite
 
-# Instanciando o repositório SQLite de usuários
+from use_cases.borrow_book import borrow_book as borrow_book_uc
+from use_cases.return_book import return_book as return_book_uc
+from use_cases.list_user_loans import list_books_for_user
+
+from infra.repositories.user_repository_sqlite import UserRepositorySQLite
+from infra.repositories.loan_repository_sqlite import LoanRepositorySQLite
+
 user_repo = UserRepositorySQLite()
+loan_repo = LoanRepositorySQLite()
 
 user_bp = Blueprint("users", __name__, url_prefix="/users")
 
-# ======================== Listar usuários ==========================
+
+# ====== Listar usuários ======
 @user_bp.route("/", methods=["GET"])
 def home():
     users = list_users(user_repo)
-    return render_template("users/index.html", users=users)
+    loans = []
+    
+    # Listando empréstimos de livros
+    for user in users:
+        borrowed_books = list_books_for_user(loan_repo, user.id)
+        for book in borrowed_books:
+            loans.append({
+                'book_id': book['id'],
+                'title': book['title'],
+                'author': book['author'],
+                'user_name': user.name,
+                'user_id': user.id,
+            })
 
-# ======================== Exibir usuário ==========================
+    return render_template("index.html", users=users, loans=loans)
+
+
+
+# ====== Detalhe do usuário + livros emprestados ======
 @user_bp.route("/<int:user_id>", methods=["GET"])
 def user(user_id):
-    user = get_user(user_repo, user_id)
-    if user is None:
+    u = get_user(user_repo, user_id)
+    if u is None:
         flash("Usuário não encontrado")
-        return redirect(url_for("users.home"))
-    return render_template("users/user.html", user=user)
+        return redirect(url_for("home"))
 
-# ======================== Criar usuário ==========================
+    borrowed_books = list_books_for_user(loan_repo, user_id)
+    return render_template("users/user.html", user=u, borrowed_books=borrowed_books)
+
+
+# ====== Criar usuário ======
 @user_bp.route("/create", methods=["GET", "POST"])
 def create():
     if request.method == "POST":
@@ -37,17 +63,18 @@ def create():
         else:
             create_user(user_repo, name)
             flash("Usuário cadastrado com sucesso!")
-            return redirect(url_for("users.home"))
+            return redirect(url_for("home"))
 
     return render_template("users/create.html")
 
-# ======================== Editar usuário ==========================
+
+# ====== Editar usuário ======
 @user_bp.route("/<int:user_id>/edit", methods=["GET", "POST"])
 def edit(user_id):
     user = get_user(user_repo, user_id)
     if user is None:
         flash("Usuário não encontrado")
-        return redirect(url_for("users.home"))
+        return redirect(url_for("home"))
 
     if request.method == "POST":
         name = request.form["name"]
@@ -57,13 +84,37 @@ def edit(user_id):
         else:
             update_user(user_repo, user_id, name)
             flash("Usuário atualizado com sucesso!")
-            return redirect(url_for("users.home"))
+            return redirect(url_for("home"))
 
     return render_template("users/edit.html", user=user)
 
-# ======================== Deletar usuário ==========================
+
+# ====== Deletar usuário ======
 @user_bp.route("/<int:user_id>/delete", methods=["POST"])
 def delete(user_id):
     delete_user(user_repo, user_id)
     flash("Usuário deletado com sucesso!")
-    return redirect(url_for("users.home"))
+    return redirect(url_for("home"))
+
+
+# ====== Emprestar livro para usuário ======
+@user_bp.route("/<int:user_id>/loans", methods=["POST"])
+def loan_book(user_id):
+    book_id = int(request.form["book_id"])
+    try:
+        borrow_book_uc(user_repo, loan_repo, user_id, book_id)
+        flash("Livro emprestado com sucesso!")
+    except ValueError as e:
+        flash(str(e))
+    return redirect(url_for("home", user_id=user_id))
+
+
+# ====== Devolver livro ======
+@user_bp.route("/<int:user_id>/returns/<int:book_id>", methods=["POST"])
+def return_book_route(user_id, book_id):
+    try:
+        return_book_uc(user_repo, loan_repo, user_id, book_id)
+        flash("Livro devolvido com sucesso!")
+    except ValueError as e:
+        flash(str(e))
+    return redirect(url_for("home", user_id=user_id))

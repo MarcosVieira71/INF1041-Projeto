@@ -1,119 +1,73 @@
 {% extends 'base.html' %}
 
-{% block title %}
-Acervo de Livros
-{% endblock %}
+{% block title %}Página Principal - Biblioteca{% endblock %}
 
 {% block content %}
 
-<nav>
-  <a href="#livros">Livros</a>
-  <a href="#usuarios">Usuários</a>
-  <a href="#emprestimos">Empréstimos</a>
-  <a href="#devolucoes">Devoluções</a>
-</nav>
-<hr>
+<!-- Botões principais -->
+<h1>Bem-vindo à Biblioteca</h1>
 
-<!-- ======================= LIVROS ======================= -->
-<section id="livros" class="bloco">
-  
-  <h2>Livros</h2>
-
-  {% for book in books %}
-        <div>
-            <h3>{{ book['title'] }}</h3>
-            <p><strong>Autor:</strong> {{ book['author'] }}</p>
-
-            {% if book['available'] %}
-                <span style="color: green;">Disponível</span>
-            {% else %}
-                <span style="color: red;">Emprestado</span>
-            {% endif %}
-
-            <a href="{{ url_for('books.edit', book_id=book['id']) }}">
-              <span class="badge badge-warning">Edit</span>
-            </a>
-
-            <hr>
-        </div>
-    {% else %}
-        <p>Nenhum livro cadastrado.</p>
-    {% endfor %}
-
-  <h3>Listar / Pesquisar</h3>
-  <form method="get" action="/books" class="form">
-    <label for="query">Busca por título/autor (opcional):</label>
-    <input type="text" id="query" name="query" placeholder="Ex.: Clean Code">
-    <button type="submit">Listar</button>
-  </form>
-
-  <h3>Cadastrar Livro</h3>
-  <form method="post" action="/books" class="form">
-    <label for="title">Título:</label>
-    <input type="text" id="title" name="title" required>
-
-    <label for="author">Autor:</label>
-    <input type="text" id="author" name="author" required>
-
-    <button type="submit">Cadastrar</button>
-  </form>
-
-</section>
+<div class="btn-group" role="group">
+    <a href="{{ url_for('books.create') }}" class="btn btn-success">Novo Livro</a>
+    <a href="{{ url_for('users.create') }}" class="btn btn-primary">Novo Usuário</a>
+    <a href="{{ url_for('users.home') }}" class="btn btn-info">Emprestar Livro</a>
+</div>
 
 <hr>
 
-<!-- ======================= USUÁRIOS ======================= -->
-<section id="usuarios" class="bloco">
-
-  <h2>Usuários</h2>
-
-  <h3>Cadastrar Usuário</h3>
-  <form method="post" action="/users" class="form">
-    <label for="user_name">Nome:</label>
-    <input type="text" id="user_name" name="name" required>
-    <button type="submit">Cadastrar</button>
-  </form>
-
-</section>
-
-<hr>
-
-<!-- ======================= EMPRÉSTIMOS ======================= -->
-<section id="emprestimos" class="bloco">
-
-  <h2>Empréstimos</h2>
-
-  <h3>Emprestar Livro</h3>
-  <form method="post" action="/loans" class="form">
-    <label for="loan_book_id">ID do Livro:</label>
-    <input type="number" id="loan_book_id" name="book_id" min="1" required>
-
-    <label for="loan_user_id">ID do Usuário:</label>
-    <input type="number" id="loan_user_id" name="user_id" min="1" required>
-
-    <button type="submit">Emprestar</button>
-  </form>
-
-</section>
+<!-- Listar Livros -->
+<h2>Livros</h2>
+{% if books %}
+    <ul>
+        {% for book in books %}
+            <li>
+                <a href="{{ url_for('books.edit', book_id=book['id']) }}">
+                    <strong>{{ book['title'] }}</strong>
+                </a> — {{ book['author'] }}
+                <span class="badge {% if book['available'] %}badge-success{% else %}badge-danger{% endif %}">
+                    {% if book['available'] %}Disponível{% else %}Emprestado{% endif %}
+                </span>
+            </li>
+        {% endfor %}
+    </ul>
+{% else %}
+    <p>Nenhum livro cadastrado.</p>
+{% endif %}
 
 <hr>
 
-<!-- ======================= DEVOLUÇÕES ======================= -->
-<section id="devolucoes" class="bloco">
-
-  <h2>Devoluções</h2>
-
-  <h3>Devolver Livro</h3>
-  <form method="post" action="/returns" class="form">
-    <label for="return_book_id">ID do Livro:</label>
-    <input type="number" id="return_book_id" name="book_id" min="1" required>
-    <button type="submit">Devolver</button>
-  </form>
-
-</section>
+<!-- Listar Usuários -->
+<h2>Usuários</h2>
+{% if users %}
+    <ul>
+        {% for user in users %}
+            <li>
+                <a href="{{ url_for('users.edit', user_id=user.id) }}">
+                    <strong>{{ user['name'] }}</strong>
+                </a>
+                <a href="{{ url_for('users.user', user_id=user.id) }}" class="btn btn-info btn-sm">Ver empréstimos</a>
+            </li>
+        {% endfor %}
+    </ul>
+{% else %}
+    <p>Nenhum usuário cadastrado.</p>
+{% endif %}
 
 <hr>
 
-<p>© Biblioteca — Exemplo educacional (Flask + Clean Architecture)</p>
+<!-- Livros Emprestados -->
+<h2>Livros Emprestados</h2>
+{% if loans %}
+    <ul>
+        {% for loan in loans %}
+            <li>
+                <strong>{{ loan['title'] }}</strong> — {{ loan['author'] }} (Emprestado por: {{ loan['user_name'] }})
+                <a href="{{ url_for('users.return_book_route', user_id=loan['user_id'], book_id=loan['book_id']) }}" class="btn btn-danger btn-sm">Devolver</a>
+            </li>
+        {% endfor %}
+    </ul>
+{% else %}
+    <p>Não há livros emprestados no momento.</p>
+{% endif %}
 
 {% endblock %}
